@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<title>W3.CSS Template</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<script src="https://unpkg.com/vue/dist/vue.js"></script>
+<script src="https://unpkg.com/vue-router/dist/vue-router.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.2/css/bootstrap.min.css" integrity="sha384-Smlep5jCw/wG7hdkwQ/Z5nLIefveQRIY9nfy6xoR1uRYBtpZgI6339F5dgvm/e9B" crossorigin="anonymous">
+
+<style>
+html,body,h1,h2,h3,h4,h5,h6 {font-family: "Roboto", sans-serif;}
+
+</style>
+<body>
+
+<div class="container-fluid" style="margin-top:250px">
+
+  <template id="weather_cities" >
+
+        <div class="row col-md-8"> 
+                <div class="card col-md-5 col-lg-5" v-if="cities.length > 0" style="width: 18rem; top: 5rem;" :cities-weather='cities' v-for="city in cities">
+                  <div class="card-body">
+                    <h5 class="card-title">{{city.title}}</h5>
+                    <span class="card-text">Location: {{city.latt_long}}</span><br>
+                    <router-link v-bind:to="'/detals/'+city.woeid" class="btn btn-primary">View details</router-link>
+                  </div>
+                  <br>
+                </div>
+                <div v-show="cities.length === 0" :message='message'> {{message}}</div>
+                
+      </div>
+</template >
+<!--template details of selected city ////////////////////////////////////////////////-->
+<template id="detals" >
+
+  	<div class="row col-md-8"> 
+                <div class="col-md-12 col-lg-12">
+                     <h2>City: <em>{{detals.title}}</em></h2>
+                </div>
+
+                <div class="card col-md-4 col-lg-4" style="width: 18rem; top: 5rem;" v-for="day in detals.consolidated_weather">
+                  <img class="card-img-top" v-bind:src="image(day.weather_state_name)" alt="Card image cap">
+                  <div class="card-body">
+                    <h5 class="card-title">{{weekDay(day.applicable_date)}}</h5>
+                    <span class="card-text">State: {{day.weather_state_name}}</span><br>
+                    <span class="card-text">Temp.: {{day.the_temp}}</span><br>
+                    <span class="card-text">State: {{day.weather_state_name}}</span><br>
+                    <span class="card-text">Max temp.: {{day.max_temp}}</span>
+                  </div>
+                </div>
+                <br>
+      </div>
+</template >
+<!--end template details of selected city /////////////////////////////////-->
+
+
+<div id="app">
+  <a href='#' v-on:click="fetchWeather('')" class="offset-md-1">HOME</a>
+
+ <div class="col-md-12 col-lg-12" >
+
+  <div  class="col-md-12 col-lg-12">
+    <input type="text" v-model="search" v-on:keyup.enter="fetchWeather" placeholder="Search title.."/>
+        <button  v-on:click="fetchWeather(search)">Search</button>
+  </div>
+	<!--router-link :to="{/}">search</router-link-->
+	<router-view :cities="cities" :message="message"></router-view>
+
+ </div>
+</div>
+
+
+<!-- END MAIN -->
+
+<script>
+///////////////////////Component weather////////////////////////////////////////////
+var myTask = Vue.component('apppage', {
+template: '#weather_cities',
+props: ['cities','message'],
+
+mounted: function () {
+
+},
+
+
+})
+/////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////Component search////////////////////////////////////////////
+/*var search = Vue.component('search_city', {
+template: '#search',
+data: function() {
+    return{
+        search: []
+
+    }
+  },
+
+mounted: function () {
+  console.log("search")
+},
+
+methods: {
+
+}
+})*/
+/////////////////////////////////end component//////////////////////////////////////
+/////////////////////////////////////////component weather details//////////////////////////////////////
+var details = Vue.component('detals', {
+template: '#detals',
+data: function() {
+    return{
+        detals: {}
+
+    }
+  },
+
+mounted: function () {
+
+	this.fetchWeatherDetails(this.$route.params.woeid);
+},
+
+methods: {
+    fetchWeatherDetails: function (city) {
+
+    axios.get("weather.php?command=location&woeid="+city)
+    .then((response => {
+    	this.detals =  response.data
+ 
+
+    }))
+
+    },
+    weekDay: function(applicable_date){
+        var dayOfWeek = new Date(applicable_date).getDay();    
+        return isNaN(dayOfWeek) ? null : ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayOfWeek];
+    },
+    image: function(state){
+        var address = "https://www.metaweather.com/static/img/weather/"
+        switch (state)
+          {
+             case "Snow": return address+"sn.svg"
+             case "Sleet": return address+"sl.svg"
+             case "Hail": return address+"h.svg"
+             case "Thunderstorm": return address+"t.svg"
+             case "Heavy Rain": return address+"hr.svg"
+             case "Light Rain": return address+"lr.svg"
+             case "Showers": return address+"s.svg"
+             case "Heavy Cloud": return address+"hc.svg"
+             case "Light Cloud": return address+"lc.svg"
+
+
+             default: 
+                 return address+"c.svg"
+          }
+    }
+}
+})
+
+////////////////////////////////////////////////////////////////////////////////////////
+const router = new VueRouter({
+  routes: [
+    { path: '/', component: myTask},
+    { path: '/detals/:woeid', component: details },
+    { path: '/search/:keyword' , component: myTask }
+  ]
+})
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+var vm = new Vue({
+  // options
+  router,
+  el: '#app',
+  data: function() {
+    return{
+        //cities: []
+        cities: [],
+        search: "",
+        message: "Searching..."
+
+    }
+  },
+
+mounted: function () {
+  this.fetchWeather("");
+},
+methods: {
+    fetchWeather: function (city) {
+    this.message = "Searching..."
+
+    if(city != "")
+      
+        axios.get("weather.php?command=search&keyword="+city)
+        .then((response => {
+          this.cities =  response.data
+          router.push({ path: '/search/'+city} )
+            this.setMessage()
+          
+        }))
+    else{
+      this.cities = []
+      var capitals = ["Istanbul", "Berlin", "London", "Helsinki", "Dublin", "Vancouver"]
+      axios.get("weather.php?command=search&keyword="+capitals[0])
+        .then((response => {
+          this.cities.push(response.data[0])
+          this.search = ""
+          router.push({ path: '/'} )
+        }))
+      for(var i=1; i<capitals.length;i++){
+         axios.get("weather.php?command=search&keyword="+capitals[i])
+        .then((response => {
+          this.cities.push(response.data[0])
+          this.search = ""
+          router.push({ path: '/'} )
+
+        }))
+      }
+      this.setMessage()
+    }
+
+      
+    },
+    setMessage: function(){
+      if(this.cities.length === 0){
+            this.message = "Nothing was found. Try with other keywords..."
+          } 
+  }
+}, 
+  
+
+})
+
+</script>
+
+</body>
+</html>
